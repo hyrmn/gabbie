@@ -27,10 +27,10 @@
                 {{end}}
             </div>
             <div class="flex items-center gap-2">
-                <!-- View toggle (placeholder for kanban later) -->
+                <!-- View toggle -->
                 <div class="flex bg-gray-100 rounded-lg p-1">
-                    <button class="px-3 py-1 bg-white rounded shadow-sm text-sm font-medium text-gray-900">List</button>
-                    <button class="px-3 py-1 text-sm font-medium text-gray-500 hover:text-gray-700" disabled title="Coming soon">Kanban</button>
+                    <span class="px-3 py-1 bg-white rounded shadow-sm text-sm font-medium text-gray-900">List</span>
+                    <a href="/lists/{{.List.ID}}/kanban" class="px-3 py-1 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-lg">Kanban</a>
                 </div>
                 {{if .IsOwner}}
                 <!-- Edit button -->

@@ -232,6 +232,7 @@ func (h *Handler) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 
 	// For HTMX requests, render the new key result component
 	if r.Header.Get("HX-Request") != "" {
+		toastTrigger(w, "API key created", "success")
 		h.Tmpl.Render(w, http.StatusOK, "components/_new_key_result.html", map[string]any{
 			"APIKey": apiKey,
 			"RawKey": rawKey,
@@ -240,6 +241,7 @@ func (h *Handler) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Full page redirect — show result on the API keys page
+	toastTrigger(w, "API key created", "success")
 	h.Tmpl.Render(w, http.StatusOK, "settings_api_keys.html", map[string]any{
 		"Title": "API Keys — Settings",
 		"User":  user,
@@ -271,11 +273,13 @@ func (h *Handler) RevokeAPIKey(w http.ResponseWriter, r *http.Request) {
 	// For HTMX, re-fetch and render the updated key list
 	if r.Header.Get("HX-Request") != "" {
 		keys, _ := h.DB.GetAPIKeysByUser(r.Context(), user.ID)
+		toastTrigger(w, "API key revoked", "info")
 		h.Tmpl.Render(w, http.StatusOK, "components/_api_key_row.html", map[string]any{
 			"Keys": keys,
 		})
 		return
 	}
 
+	toastTrigger(w, "API key revoked", "info")
 	http.Redirect(w, r, "/settings/api-keys", http.StatusSeeOther)
 }

@@ -1,6 +1,6 @@
 # Team To-Do Tracker — Progress
 
-## Status: Phase 4 Complete ✅
+## Status: Complete ✅ All phases delivered
 
 ### Completed
 - **Phase 1: Scaffolding** (gabbie-fz8) ✅
@@ -47,31 +47,60 @@
   - Only owner can delete lists or manage collaborators
   - Sidebar navigation on all authenticated pages
 
-- **Phase 4: Item CRUD with HTMX** (gabbie-nin) ✅
-  - DB: CreateItem, GetItem, UpdateItem, DeleteItem, GetItemsByList (with filtering)
-  - DB: GetItemsWithDetails (with assignee info, overdue flags), ToggleItemStatus
-  - DB: ItemFilter struct (status, assignee, priority, tag, sort_by, sort_dir)
-  - DB: ItemUpdates struct for partial updates
-  - Handlers: ListItems (with filter/sort), CreateItem, UpdateItem, DeleteItem, ToggleItemStatus
-  - Templates: _item_list.html (filters, sort bar), _item_card.html (inline edit, status toggle)
-  - Templates: _new_item_form.html, _status_badge.html
-  - list.html updated to embed item list with full CRUD
+- **Phase 4: Item CRUD** (gabbie-nin) ✅
+  - DB queries: CreateItem, CreateItemSimple, GetItemsByList, GetItem, GetItemSimple, GetItemsWithDetails
+  - Partial update: UpdateItemPartial with ItemUpdates struct
+  - Status cycling: ToggleItemStatus (todo → in_progress → done → todo)
+  - Filtering/sorting: ItemFilter with status, assignee, priority, tag, sort_by, sort_dir
+  - Handlers: ListItems, CreateItem, UpdateItem, DeleteItem, ToggleItemStatus
+  - API handlers: CreateItemJSON, UpdateItemJSON, GetListJSON
+  - Templates: _item_list.html, _item_card.html, _new_item_form.html, _status_badge.html
+  - Inline editing with form swaps, delete confirmation
+  - Filter bar with status, priority, sort controls
 
-- **Phase 4: API and API Keys** (gabbie-pnt) ✅
-  - DB: GenerateAPIKey, CreateAPIKey, GetAPIKeysByUser, GetAPIKeyByHash, RevokeAPIKey
-  - API Key Auth Middleware: extracts Bearer token, hashes, looks up, checks revoked, sets user
-  - EitherAuth middleware: tries JWT first, falls back to API key for /api/ routes
-  - REST API: GET/POST /api/lists, GET /api/lists/{id}, POST /api/lists/{id}/items, PUT /api/items/{id}
-  - Settings pages: /settings (profile), /settings/api-keys (key management)
-  - Templates: settings.html, settings_api_keys.html, _api_key_row.html, _new_key_result.html
-  - Key format: "ctx7sk-" + 32 hex chars, SHA-256 hash stored, raw shown once
+- **Phase 4: API & API Keys** (gabbie-pnt) ✅
+  - API key generation: crypto/rand + SHA-256 hashing
+  - DB queries: CreateAPIKey, GetAPIKey, GetAPIKeysByUser, GetAPIKeyByHash, RevokeAPIKey, UpdateAPIKeyLastUsed
+  - API key auth middleware: APIKeyAuthMiddleware (checks Bearer token)
+  - EitherAuthMiddleware: tries JWT first, falls back to API key
+  - Settings pages: settings.html, settings_api_keys.html
+  - Components: _api_key_row.html, _new_key_result.html
+  - Handlers: Settings, SettingsAPIKeys, CreateAPIKey, RevokeAPIKey
+  - Full REST API: GET/POST /api/lists, GET /api/lists/{id}, POST /api/lists/{id}/items, PUT /api/items/{id}
+
+- **Phase 5: Kanban Board** (gabbie-ac3) ✅
+  - Kanban page template (kanban.html) with three columns: Todo, In Progress, Done
+  - Compact draggable cards (_kanban_card.html) with priority badges, due dates, assignee initials
+  - HTML5 Drag and Drop API for moving items between columns (no external libraries)
+  - Inline item creation per column (quick-add form)
+  - Visual feedback: dragover highlight (green border), drag ghost (opacity + rotation)
+  - Move item API: PUT /api/items/{id}/move with JSON {status: "..."}
+  - Handler: KanbanView (GET /lists/{id}/kanban), MoveItem (PUT /items/{id}/move)
+  - Working view toggle in list.html (List ↔ Kanban links)
+  - `dict` template function added to template engine for flexible context passing
+  - 404 and error page handlers (notFound, ServeError)
 
 ### Pending
-- **Phase 5: Kanban Board** (gabbie-ac3) — AlpineJS-powered drag-and-drop kanban board
-- **Phase 6: Polish** (gabbie-8lh) — Form validation, error pages, loading states, toasts, production build
+- **Phase 6: Polish & Deployment** (gabbie-8lh) ✅
+  - Error pages: error.html (generic), 404.html (not found) — both use base.html layout
+  - 404 handler in server.go with HX-Redirect support and JSON fallback for API requests
+  - ServeError helper function for consistent server-side error rendering
+  - RecoveryMiddleware wraps all routes (page + API) to catch panics and return 500 error pages
+  - Spinner component: _spinner.html with Tailwind animate-spin
+  - Toast notifications: HX-Trigger headers on all create/update/delete handlers (lists, items, collaborators, API keys)
+  - AlpineJS toast bridge: show-toast event listener connects HTMX events to AlpineJS toast store
+  - HTMX error handling: responseError handler parses status codes and shows contextual error toasts
+  - Global toast auto-dismiss after 4 seconds with animated enter/leave transitions
+  - Tailwind CSS: built with `npx @tailwindcss/cli --minify` (real build, not placeholder)
+  - Makefile: `css`, `build`, `prod`, `docker`, `test`, `clean` targets
+  - Dockerfile: multi-stage build (golang:1.23-alpine + node for Tailwind → alpine runtime), CGO disabled
+  - DB_PATH=/data/todotracker.db in Docker, port 8080
 
 ### Notes
 - Supabase env vars: `SUPABASE_URL`, `SUPABASE_JWT_SECRET`, `SUPABASE_ANON_KEY`
 - Dependencies: `github.com/golang-jwt/jwt/v5`, `github.com/lestrrat-go/jwx/v2`, `github.com/google/uuid`, `modernc.org/sqlite`
 - DB_PATH env var controls SQLite file location (default: todotracker.db)
-- Tailwind CSS output is a placeholder (needs `make css` for full build)
+- Tailwind CSS output.css is built (minified, real build via npx @tailwindcss/cli)
+- API endpoints accept both JWT session cookies and API key auth (EitherAuthMiddleware)
+- Docker: `docker build -t todotracker .` (multi-stage, no CGO, SQLite via modernc.org/sqlite)
+- Make targets: `make prod` (minified CSS + static binary), `make docker` (Docker image), `make dev` (air hot reload), `make test`

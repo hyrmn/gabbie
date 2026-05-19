@@ -130,3 +130,8 @@ func writeJSONError(w http.ResponseWriter, status int, msg string) {
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
+
+// toastTrigger sets an HX-Trigger response header to show a toast notification.
+func toastTrigger(w http.ResponseWriter, message, tpe string) {
+	w.Header().Set("HX-Trigger", `{"showToast":{"message":"`+message+`","type":"`+tpe+`"}}`)
+}

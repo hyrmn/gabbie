@@ -1,0 +1,130 @@
+<!-- _kanban_card.html: Compact draggable card for kanban columns -->
+<!--
+Expected context:
+  .Item       — db.ItemDetail (the item)
+  .Collaborators — []db.CollaboratorDetail
+  .UserID     — current user's ID
+  .IsOwner    — bool
+  .ListID     — the list ID (for add forms)
+-->
+<div id="item-card-{{.Item.ID}}"
+     class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow group"
+     draggable="true"
+     data-item-id="{{.Item.ID}}"
+     x-data="{ editing: false, deleting: false }">
+    <!-- Card header -->
+    <div class="flex items-start justify-between gap-2">
+        <div class="flex-1 min-w-0 cursor-pointer" @click="editing = true">
+            <p class="text-sm font-medium text-gray-900 leading-tight {{if eq .Item.Status "done"}}line-through text-gray-400{{end}}">
+                {{.Item.Title}}
+            </p>
+        </div>
+        <!-- Actions -->
+        <div class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+            <button @click="editing = true" class="p-0.5 text-gray-400 hover:text-gray-600" title="Edit">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+            </button>
+            <button @click="deleting = true" class="p-0.5 text-gray-400 hover:text-red-600" title="Delete">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 001 1v3M4 7h16"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Card meta -->
+    <div class="flex items-center gap-2 mt-2 flex-wrap">
+        <!-- Priority badge -->
+        {{if eq .Item.Priority 0}}
+        <span class="text-xs font-medium text-red-700 bg-red-50 px-1.5 py-0.5 rounded">⚡ Critical</span>
+        {{else if eq .Item.Priority 1}}
+        <span class="text-xs font-medium text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded">🔥 High</span>
+        {{else if eq .Item.Priority 3}}
+        <span class="text-xs font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">🌱 Low</span>
+        {{end}}
+
+        <!-- Due date -->
+        {{if .Item.DueDate}}
+        <span class="text-xs {{if .Item.IsOverdue}}text-red-600 font-semibold{{else}}text-gray-400{{end}} flex items-center gap-1">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            {{if .Item.IsOverdue}}Overdue · {{end}}{{.Item.DueDate}}
+        </span>
+        {{end}}
+
+        <!-- Assignee initial -->
+        {{if .Item.AssigneeID}}
+        <div class="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center text-xs font-bold text-green-700 shrink-0"
+             x-init="$el.textContent = ('{{.Item.AssignedDisplayName}}' || '{{.Item.AssignedEmail}}' || '?').charAt(0).toUpperCase()">
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Description (truncated) -->
+    {{if .Item.Description}}
+    <p class="text-xs text-gray-500 mt-1.5 line-clamp-2">{{.Item.Description}}</p>
+    {{end}}
+
+    <!-- Inline edit form -->
+    <div x-show="editing" x-cloak class="mt-3 pt-3 border-t border-gray-100">
+        <form hx-put="/items/{{.Item.ID}}" hx-target="#kanban-{{.Item.Status}}" hx-swap="innerHTML" class="space-y-2">
+            <div>
+                <input type="text" name="title" value="{{.Item.Title}}" required
+                       class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                       @keyup.escape="editing = false">
+            </div>
+            <div class="flex gap-2">
+                <select name="status" class="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    <option value="todo" {{if eq .Item.Status "todo"}}selected{{end}}>To Do</option>
+                    <option value="in_progress" {{if eq .Item.Status "in_progress"}}selected{{end}}>In Progress</option>
+                    <option value="done" {{if eq .Item.Status "done"}}selected{{end}}>Done</option>
+                </select>
+                <select name="priority" class="px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    <option value="0" {{if eq .Item.Priority 0}}selected{{end}}>⚡</option>
+                    <option value="1" {{if eq .Item.Priority 1}}selected{{end}}>🔥</option>
+                    <option value="2" {{if eq .Item.Priority 2}}selected{{end}}>📌</option>
+                    <option value="3" {{if eq .Item.Priority 3}}selected{{end}}>🌱</option>
+                </select>
+            </div>
+            <div>
+                <select name="assignee_id" class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                    <option value="">Unassigned</option>
+                    {{range .Collaborators}}
+                    <option value="{{.UserID}}" {{if eq $.UserID .UserID}}selected{{end}}>{{.Email}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <div>
+                <input type="date" name="due_date" value="{{if .Item.DueDate}}{{.Item.DueDate}}{{end}}"
+                       class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500">
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded transition">
+                    Save
+                </button>
+                <button type="button" @click="editing = false"
+                        class="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded transition">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Delete confirmation -->
+    <div x-show="deleting" x-cloak class="mt-3 pt-3 border-t border-red-100">
+        <p class="text-xs text-red-700 mb-2">Delete "{{.Item.Title}}"?</p>
+        <div class="flex gap-2">
+            <button hx-delete="/items/{{.Item.ID}}" hx-target="#item-card-{{.Item.ID}}" hx-swap="outerHTML"
+                    class="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded transition">
+                Yes
+            </button>
+            <button @click="deleting = false"
+                    class="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded transition">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>

@@ -43,6 +43,9 @@ func (s *Server) RegisterRoutes() {
 	s.Mux.HandleFunc("POST /auth/logout", authHandlers.Logout)
 	s.Mux.HandleFunc("GET /auth/session", authHandlers.Session)
 
+	// 404 handler for unmatched routes
+	s.Mux.HandleFunc("/", s.notFound)
+
 	// Authenticated pages (wrapped in AuthMiddleware)
 	protected := http.NewServeMux()
 	protected.HandleFunc("GET /", s.Handler.Index)
@@ -61,13 +64,22 @@ func (s *Server) RegisterRoutes() {
 	protected.HandleFunc("DELETE /items/{id}", s.Handler.DeleteItem)
 	protected.HandleFunc("PUT /items/{id}/status", s.Handler.ToggleItemStatus)
 
+	// Kanban routes
+	protected.HandleFunc("GET /lists/{id}/kanban", s.Handler.KanbanView)
+	protected.HandleFunc("PUT /items/{id}/move", s.Handler.MoveItem)
+
 	// Settings pages
 	protected.HandleFunc("GET /settings", s.Handler.Settings)
 	protected.HandleFunc("GET /settings/api-keys", s.Handler.SettingsAPIKeys)
 	protected.HandleFunc("POST /settings/api-keys", s.Handler.CreateAPIKey)
 	protected.HandleFunc("DELETE /settings/api-keys/{id}", s.Handler.RevokeAPIKey)
 
-	s.Mux.Handle("/", AuthMiddleware(s.Auth, s.Logger)(protected))
+	// Mount protected routes — wrap with recovery and auth
+	wrapped := RecoveryMiddleware(protected, s.Logger)
+	s.Mux.Handle("/dashboard", AuthMiddleware(s.Auth, s.Logger)(wrapped))
+	s.Mux.Handle("/lists", AuthMiddleware(s.Auth, s.Logger)(wrapped))
+	s.Mux.Handle("/items", AuthMiddleware(s.Auth, s.Logger)(wrapped))
+	s.Mux.Handle("/settings", AuthMiddleware(s.Auth, s.Logger)(wrapped))
 
 	// API routes — accept both JWT cookie and API key auth
 	apiMux := http.NewServeMux()
@@ -76,7 +88,8 @@ func (s *Server) RegisterRoutes() {
 	apiMux.HandleFunc("GET /api/lists/{id}", s.Handler.GetListJSON)
 	apiMux.HandleFunc("POST /api/lists/{id}/items", s.Handler.CreateItemJSON)
 	apiMux.HandleFunc("PUT /api/items/{id}", s.Handler.UpdateItemJSON)
-	s.Mux.Handle("/api/", EitherAuthMiddleware(s.Auth, s.DB, s.Logger)(apiMux))
+	apiMux.HandleFunc("PUT /api/items/{id}/move", s.Handler.MoveItemAPI)
+	s.Mux.Handle("/api/", RecoveryMiddleware(EitherAuthMiddleware(s.Auth, s.DB, s.Logger)(apiMux), s.Logger))
 }
 
 // LoggingMiddleware logs each request with method, path, duration, and status.
@@ -115,4 +128,48 @@ type loggingResponseWriter struct {
 func (lrw *loggingResponseWriter) WriteHeader(code int) {
 	lrw.statusCode = code
 	lrw.ResponseWriter.WriteHeader(code)
+}
+
+// notFound renders the 404 page.
+func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
+	// For API requests, return JSON
+	if len(r.URL.Path) >= 5 && r.URL.Path[:5] == "/api/" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"error":"not found"}`))
+		return
+	}
+
+	// For HTMX requests, redirect to dashboard
+	if r.Header.Get("HX-Request") != "" {
+		w.Header().Set("HX-Redirect", "/dashboard")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	// Render the 404 page
+	data := map[string]any{
+		"Title":      "Page Not Found",
+		"StatusCode": 404,
+		"Message":    "The page you're looking for doesn't exist or has been moved.",
+	}
+	s.Tmpl.Render(w, http.StatusNotFound, "404.html", data)
+}
+
+// ServeError renders an error page for server-side errors.
+func ServeError(w http.ResponseWriter, r *http.Request, tmplEngine *templates.Engine, statusCode int, title string, message string) {
+	// For API requests, return JSON
+	if len(r.URL.Path) >= 5 && r.URL.Path[:5] == "/api/" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(statusCode)
+		w.Write([]byte(`{"error":"` + message + `"}`))
+		return
+	}
+
+	data := map[string]any{
+		"Title":      title,
+		"StatusCode": statusCode,
+		"Message":    message,
+	}
+	tmplEngine.Render(w, statusCode, "error.html", data)
 }

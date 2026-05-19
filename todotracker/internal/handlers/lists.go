@@ -92,11 +92,13 @@ func (h *Handler) ListCreate(w http.ResponseWriter, r *http.Request) {
 
 	// HTMX redirect to the new list
 	if r.Header.Get("HX-Request") != "" {
+		toastTrigger(w, "List created", "success")
 		w.Header().Set("HX-Redirect", "/lists/"+list.ID)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
+	toastTrigger(w, "List created", "success")
 	http.Redirect(w, r, "/lists/"+list.ID, http.StatusSeeOther)
 }
 
@@ -200,10 +202,12 @@ func (h *Handler) ListUpdate(w http.ResponseWriter, r *http.Request) {
 
 	// Return updated header snippet via HTMX
 	if r.Header.Get("HX-Request") != "" {
+		toastTrigger(w, "List updated", "success")
 		w.Write([]byte(`<h2 class="text-2xl font-bold text-gray-900">` + name + `</h2>`))
 		return
 	}
 
+	toastTrigger(w, "List updated", "success")
 	http.Redirect(w, r, "/lists/"+listID, http.StatusSeeOther)
 }
 
@@ -230,11 +234,13 @@ func (h *Handler) ListDelete(w http.ResponseWriter, r *http.Request) {
 
 	// HTMX: remove the list card and redirect to dashboard
 	if r.Header.Get("HX-Request") != "" {
+		toastTrigger(w, "List deleted", "success")
 		w.Header().Set("HX-Redirect", "/dashboard")
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
+	toastTrigger(w, "List deleted", "success")
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
 
@@ -307,6 +313,7 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") != "" {
 		// Re-fetch collaborators and render
 		collabs, _ := h.DB.GetCollaborators(r.Context(), listID)
+		toastTrigger(w, "Collaborator added", "success")
 		h.Tmpl.Render(w, http.StatusOK, "components/_collaborator_list.html", map[string]any{
 			"List":          struct{ ID string }{ID: listID},
 			"Collaborators": collabs,
@@ -316,6 +323,7 @@ func (h *Handler) AddCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	toastTrigger(w, "Collaborator added", "success")
 	http.Redirect(w, r, "/lists/"+listID, http.StatusSeeOther)
 }
 
@@ -356,6 +364,7 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 	// Return updated collaborator list via HTMX
 	if r.Header.Get("HX-Request") != "" {
 		collabs, _ := h.DB.GetCollaborators(r.Context(), listID)
+		toastTrigger(w, "Collaborator removed", "success")
 		h.Tmpl.Render(w, http.StatusOK, "components/_collaborator_list.html", map[string]any{
 			"List":          struct{ ID string }{ID: listID},
 			"Collaborators": collabs,
@@ -365,5 +374,6 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	toastTrigger(w, "Collaborator removed", "success")
 	http.Redirect(w, r, "/lists/"+listID, http.StatusSeeOther)
 }

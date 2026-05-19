@@ -3,6 +3,7 @@ package templates
 
 import (
 	"embed"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"net/http"
@@ -16,7 +17,22 @@ type Engine struct {
 
 // New parses all templates from the embedded filesystem.
 func New(assets embed.FS) (*Engine, error) {
-	funcs := template.FuncMap{}
+	funcs := template.FuncMap{
+		"dict": func(values ...any) (map[string]any, error) {
+			if len(values)%2 != 0 {
+				return nil, fmt.Errorf("invalid dict call: odd number of arguments")
+			}
+			dict := make(map[string]any, len(values)/2)
+			for i := 0; i < len(values); i += 2 {
+				key, ok := values[i].(string)
+				if !ok {
+					return nil, fmt.Errorf("dict keys must be strings")
+				}
+				dict[key] = values[i+1]
+			}
+			return dict, nil
+		},
+	}
 
 	tmpl, err := template.New("").Funcs(funcs).ParseFS(assets, "templates/*.html", "templates/components/*.html")
 	if err != nil {

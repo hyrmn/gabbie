@@ -120,10 +120,12 @@ func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) {
 
 	// Return the refreshed items list via HTMX
 	if r.Header.Get("HX-Request") != "" {
+		toastTrigger(w, "Item created", "success")
 		h.renderItemsList(w, r, listID, user.ID)
 		return
 	}
 
+	toastTrigger(w, "Item created", "success")
 	http.Redirect(w, r, "/lists/"+listID, http.StatusSeeOther)
 }
 
@@ -209,10 +211,12 @@ func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 
 	// Return the updated item card via HTMX
 	if r.Header.Get("HX-Request") != "" {
+		toastTrigger(w, "Item updated", "success")
 		h.renderItemsList(w, r, item.ListID, user.ID)
 		return
 	}
 
+	toastTrigger(w, "Item updated", "success")
 	http.Redirect(w, r, "/lists/"+item.ListID, http.StatusSeeOther)
 }
 
@@ -252,10 +256,12 @@ func (h *Handler) DeleteItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Header.Get("HX-Request") != "" {
+		toastTrigger(w, "Item deleted", "success")
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
+	toastTrigger(w, "Item deleted", "success")
 	http.Redirect(w, r, "/lists/"+item.ListID, http.StatusSeeOther)
 }
 
@@ -297,11 +303,13 @@ func (h *Handler) ToggleItemStatus(w http.ResponseWriter, r *http.Request) {
 
 	if r.Header.Get("HX-Request") != "" {
 		// Return the updated status badge
+		toastTrigger(w, "Status updated", "info")
 		badge := statusBadgeHTML(models.ItemStatus(newStatus))
 		w.Write([]byte(badge))
 		return
 	}
 
+	toastTrigger(w, "Status updated", "info")
 	http.Redirect(w, r, "/lists/"+item.ListID, http.StatusSeeOther)
 }
 
