@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "gabbie",
+  "project_id": "599f2784-aeb2-4927-807e-90b7be80ac07"
+}
