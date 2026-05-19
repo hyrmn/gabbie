@@ -58,6 +58,15 @@ func OptionalAuth(svc *auth.Service) func(http.Handler) http.Handler {
 	}
 }
 
+// SecurityHeadersMiddleware sets recommended security headers on every response.
+func SecurityHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		next.ServeHTTP(w, r)
+	})
+}
+
 // redirectToLogin redirects to the login page, respecting HTMX requests.
 func redirectToLogin(w http.ResponseWriter, r *http.Request) {
 	// Check if this looks like an API request (prefixed with /api/)

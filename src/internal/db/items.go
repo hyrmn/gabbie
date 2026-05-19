@@ -293,7 +293,8 @@ func (d *DB) GetItemsByList(ctx context.Context, listID, userID string, filter I
 }
 
 // GetItemsByListSimple returns all items for a list without access control.
-// Use for API calls where access is checked at handler level.
+// SECURITY: This function bypasses access control. The caller MUST verify list
+// access before calling this function.
 func (d *DB) GetItemsByListSimple(ctx context.Context, listID string) ([]models.Item, error) {
 	rows, err := d.QueryContext(ctx, `
 		SELECT id, list_id, title, description, status, assignee_id, priority,
@@ -359,6 +360,8 @@ func (d *DB) GetItem(ctx context.Context, itemID, userID string) (*models.Item, 
 }
 
 // GetItemSimple returns a single item by ID without access control.
+// SECURITY: This function bypasses access control. The caller MUST verify
+// list access before calling this function.
 func (d *DB) GetItemSimple(ctx context.Context, itemID string) (*models.Item, error) {
 	row := d.QueryRowContext(ctx, `
 		SELECT i.id, i.list_id, i.title, i.description, i.status, i.assignee_id,
@@ -477,7 +480,7 @@ func (d *DB) UpdateItem(ctx context.Context, itemID, userID string,
 		updates = append(updates, "assignee_id = ?")
 		args = append(args, nullString(assigneeID))
 	}
-	if priority >= 0 {
+	if priority >= 0 && priority <= 3 {
 		updates = append(updates, "priority = ?")
 		args = append(args, priority)
 	}
@@ -537,6 +540,8 @@ func (d *DB) DeleteItem(ctx context.Context, itemID, userID string) error {
 }
 
 // DeleteItemSimple removes an item by ID without access control.
+// SECURITY: This function bypasses access control. The caller MUST verify
+// list access before calling this function.
 func (d *DB) DeleteItemSimple(ctx context.Context, itemID string) error {
 	result, err := d.ExecContext(ctx, `DELETE FROM items WHERE id = ?`, itemID)
 	if err != nil {

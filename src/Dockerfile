@@ -32,8 +32,12 @@ WORKDIR /app
 
 COPY --from=builder /todotracker .
 
-# Create directory for SQLite database
-RUN mkdir -p /data
+# Create directory for SQLite database and non-root user
+RUN mkdir -p /data && \
+    adduser -D appuser && \
+    chown -R appuser /app /data
+
+USER appuser
 
 ENV DB_PATH=/data/todotracker.db
 ENV PORT=8080

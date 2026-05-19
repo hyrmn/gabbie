@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -43,6 +45,9 @@ func main() {
 
 	if supabaseURL == "" {
 		logger.Warn("SUPABASE_URL not set, auth will not work in production", "note", "set env vars for Supabase integration")
+	} else if !isValidSupabaseURL(supabaseURL) {
+		logger.Error("SUPABASE_URL is not a valid HTTPS URL", "url", supabaseURL)
+		os.Exit(1)
 	}
 
 	// Initialize template engine
@@ -88,7 +93,12 @@ func main() {
 	addr := fmt.Sprintf(":%s", port)
 	s := &http.Server{
 		Addr:    addr,
-		Handler: server.LoggingMiddleware(srv.Mux, logger),
+		Handler: server.RecoveryMiddleware(
+			server.SecurityHeadersMiddleware(
+				server.LoggingMiddleware(srv.Mux, logger),
+			),
+			logger,
+		),
 	}
 
 	// Graceful shutdown
@@ -115,4 +125,16 @@ func main() {
 	}
 
 	logger.Info("server stopped")
+}
+
+// isValidSupabaseURL validates that a Supabase URL is an HTTPS URL with
+// a valid scheme and host, preventing redirection to malicious endpoints.
+func isValidSupabaseURL(rawURL string) bool {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Scheme != "https" || u.Host == "" {
+		return false
+	}
+	// Require supabase.co or localhost for local development
+	host := strings.ToLower(u.Host)
+	return strings.Contains(host, "supabase.co") || host == "localhost" || strings.HasPrefix(host, "localhost:")
 }

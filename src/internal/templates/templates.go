@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"path/filepath"
 )
@@ -54,7 +55,9 @@ func (e *Engine) Render(w http.ResponseWriter, status int, name string, data any
 	w.WriteHeader(status)
 
 	if err := t.Execute(w, data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		// Log the real error but don't leak internal details to the client
+		slog.Default().Error("template execution failed", "name", name, "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 

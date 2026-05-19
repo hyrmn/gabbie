@@ -2,6 +2,7 @@
 package handlers
 
 import (
+	"html"
 	"net/http"
 	"strings"
 
@@ -203,7 +204,8 @@ func (h *Handler) ListUpdate(w http.ResponseWriter, r *http.Request) {
 	// Return updated header snippet via HTMX
 	if r.Header.Get("HX-Request") != "" {
 		toastTrigger(w, "List updated", "success")
-		w.Write([]byte(`<h2 class="text-2xl font-bold text-gray-900">` + name + `</h2>`))
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(`<h2 class="text-2xl font-bold text-gray-900">` + html.EscapeString(name) + `</h2>`))
 		return
 	}
 
@@ -354,10 +356,10 @@ func (h *Handler) RemoveCollaborator(w http.ResponseWriter, r *http.Request) {
 		h.Logger.Error("failed to remove collaborator", "error", err)
 		if r.Header.Get("HX-Request") != "" {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
+			w.Write([]byte("Failed to remove collaborator"))
 			return
 		}
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "Failed to remove collaborator", http.StatusBadRequest)
 		return
 	}
 

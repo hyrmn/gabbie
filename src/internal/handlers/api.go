@@ -102,6 +102,12 @@ func (h *Handler) CreateItemJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate priority range
+	if req.Priority < 0 || req.Priority > 3 {
+		writeJSONError(w, http.StatusBadRequest, "priority must be between 0 and 3")
+		return
+	}
+
 	item, err := h.DB.CreateItem(r.Context(), listID, req.Title, req.Description, status, req.AssigneeID, req.Priority, req.DueDate, req.Tags, req.SortOrder)
 	if err != nil {
 		h.Logger.Error("failed to create item", "error", err)

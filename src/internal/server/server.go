@@ -2,6 +2,7 @@
 package server
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"time"
@@ -162,7 +163,7 @@ func ServeError(w http.ResponseWriter, r *http.Request, tmplEngine *templates.En
 	if len(r.URL.Path) >= 5 && r.URL.Path[:5] == "/api/" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(statusCode)
-		w.Write([]byte(`{"error":"` + message + `"}`))
+		json.NewEncoder(w).Encode(map[string]string{"error": message})
 		return
 	}
 
