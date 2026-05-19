@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hyrmn/todotracker/internal/auth"
+	"github.com/hyrmn/todotracker/internal/db"
 	"github.com/hyrmn/todotracker/internal/server"
 	"github.com/hyrmn/todotracker/internal/templates"
 )
@@ -51,12 +52,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Initialize auth service (no DB yet — auth routes just verify JWT + set cookies)
+	// Initialize database
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "todotracker.db"
+	}
+	database, err := db.New(dbPath, assets, logger)
+	if err != nil {
+		logger.Error("failed to initialize database", "error", err)
+		os.Exit(1)
+	}
+	defer database.Close()
+
+	// Initialize auth service
 	authSvc := auth.New(auth.Config{
-		SupabaseURL:     supabaseURL,
+		SupabaseURL:      supabaseURL,
 		SupabaseJWTSecret: supabaseJWTSecret,
 		SupabaseAnonKey:   supabaseAnonKey,
-	}, nil, logger) // DB will be wired in when schema task completes
+	}, database.DB, logger)
 
 	// Start JWKS background refresh
 	ctx, cancel := context.WithCancel(context.Background())
@@ -71,7 +84,7 @@ func main() {
 	))
 
 	// Routes
-	srv := server.New(mux, tmpl, logger, authSvc)
+	srv := server.New(mux, tmpl, logger, authSvc, database)
 	srv.RegisterRoutes()
 
 	addr := fmt.Sprintf(":%s", port)

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/hyrmn/todotracker/internal/db"
 	"github.com/hyrmn/todotracker/internal/templates"
 )
 
@@ -12,13 +13,15 @@ import (
 type Handler struct {
 	Tmpl   *templates.Engine
 	Logger *slog.Logger
+	DB     *db.DB
 }
 
 // New creates a new Handler.
-func New(tmpl *templates.Engine, logger *slog.Logger) *Handler {
+func New(tmpl *templates.Engine, logger *slog.Logger, database *db.DB) *Handler {
 	return &Handler{
 		Tmpl:   tmpl,
 		Logger: logger,
+		DB:     database,
 	}
 }
 

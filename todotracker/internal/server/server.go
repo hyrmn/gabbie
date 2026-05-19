@@ -7,27 +7,30 @@ import (
 	"time"
 
 	"github.com/hyrmn/todotracker/internal/auth"
+	"github.com/hyrmn/todotracker/internal/db"
 	"github.com/hyrmn/todotracker/internal/handlers"
 	"github.com/hyrmn/todotracker/internal/templates"
 )
 
-// Server holds the HTTP mux, templates, logger, and auth service.
+// Server holds the HTTP mux, templates, logger, DB, and auth service.
 type Server struct {
 	Mux     *http.ServeMux
 	Tmpl    *templates.Engine
 	Logger  *slog.Logger
 	Handler *handlers.Handler
 	Auth    *auth.Service
+	DB      *db.DB
 }
 
 // New creates a new Server instance.
-func New(mux *http.ServeMux, tmpl *templates.Engine, logger *slog.Logger, authService *auth.Service) *Server {
+func New(mux *http.ServeMux, tmpl *templates.Engine, logger *slog.Logger, authService *auth.Service, database *db.DB) *Server {
 	return &Server{
 		Mux:    mux,
 		Tmpl:   tmpl,
 		Logger: logger,
-		Handler: handlers.New(tmpl, logger),
+		Handler: handlers.New(tmpl, logger, database),
 		Auth:   authService,
+		DB:     database,
 	}
 }
 
