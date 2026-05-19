@@ -1,0 +1,48 @@
+{{define "components/_api_key_row.html"}}
+<div id="api-keys-list">
+    {{if .Keys}}
+    <h3 class="text-sm font-semibold text-gray-700 mb-3">Your API Keys</h3>
+    <div class="space-y-3">
+        {{range .Keys}}
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200" id="key-{{.ID}}">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                    <p class="text-sm font-medium text-gray-900 truncate">{{.Name}}</p>
+                    {{if .IsActive}}
+                    <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Active</span>
+                    {{else}}
+                    <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Revoked</span>
+                    {{end}}
+                </div>
+                <p class="text-xs font-mono text-gray-500 mt-1">{{.MaskedKey}}</p>
+                <p class="text-xs text-gray-400 mt-1">
+                    Created: {{.CreatedAt.Format "Jan 2, 2006"}}
+                    {{if .LastUsedAt}}
+                    · Last used: {{.LastUsedAt.Format "Jan 2, 2006"}}
+                    {{else}}
+                    · Never used
+                    {{end}}
+                </p>
+            </div>
+            {{if .IsActive}}
+            <button hx-delete="/settings/api-keys/{{.ID}}"
+                    hx-target="#api-keys-list"
+                    hx-swap="outerHTML"
+                    hx-confirm="Revoke this API key? This action cannot be undone."
+                    class="ml-4 px-3 py-1.5 text-sm text-red-600 hover:text-red-800 border border-red-300 rounded-lg hover:bg-red-50 transition whitespace-nowrap">
+                Revoke
+            </button>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+    {{else}}
+    <div class="text-center py-8 text-gray-500">
+        <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+        </svg>
+        <p class="text-sm">No API keys yet. Generate one above to get started.</p>
+    </div>
+    {{end}}
+</div>
+{{end}}

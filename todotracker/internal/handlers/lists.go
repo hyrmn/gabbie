@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hyrmn/todotracker/internal/auth"
+	"github.com/hyrmn/todotracker/internal/db"
 	"github.com/hyrmn/todotracker/internal/models"
 )
 
@@ -99,7 +100,7 @@ func (h *Handler) ListCreate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/lists/"+list.ID, http.StatusSeeOther)
 }
 
-// ListView renders a single list with its details and collaborators.
+// ListView renders a single list with its details, collaborators, and items.
 func (h *Handler) ListView(w http.ResponseWriter, r *http.Request) {
 	user := auth.GetUser(r)
 	if user == nil {
@@ -127,6 +128,14 @@ func (h *Handler) ListView(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fetch items with details
+	items, err := h.DB.GetItemsWithDetails(r.Context(), listID, db.ItemFilter{})
+	if err != nil {
+		h.Logger.Error("failed to fetch items", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	// Fetch user's lists for sidebar
 	sidebarList := listDetailsFromLists(r.Context(), h.DB, user.ID)
 
@@ -135,6 +144,8 @@ func (h *Handler) ListView(w http.ResponseWriter, r *http.Request) {
 		"List":          list,
 		"Lists":         sidebarList,
 		"Collaborators": collabs,
+		"Items":         items,
+		"Filter":        db.ItemFilter{},
 		"IsOwner":       list.OwnerID == user.ID,
 		"UserID":        user.ID,
 	})

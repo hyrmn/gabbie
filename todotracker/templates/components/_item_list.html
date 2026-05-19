@@ -1,0 +1,66 @@
+<!-- _item_list.html: Full items list with header, filters, and cards -->
+<div id="items-container">
+    <!-- Quick-add form -->
+    {{template "components/_new_item_form.html" .}}
+
+    <!-- Filter and sort bar -->
+    <div class="flex flex-wrap items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <!-- Status filter -->
+        <div class="flex items-center gap-1">
+            <label for="filter-status" class="text-xs font-medium text-gray-500">Status:</label>
+            <select id="filter-status" name="status"
+                    hx-get="/lists/{{.List.ID}}/items" hx-target="#items-container" hx-swap="innerHTML"
+                    hx-include="closest div" class="text-sm border border-gray-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                <option value="">All</option>
+                <option value="todo" {{if eq .Filter.Status "todo"}}selected{{end}}>To Do</option>
+                <option value="in_progress" {{if eq .Filter.Status "in_progress"}}selected{{end}}>In Progress</option>
+                <option value="done" {{if eq .Filter.Status "done"}}selected{{end}}>Done</option>
+            </select>
+        </div>
+
+        <!-- Priority filter -->
+        <div class="flex items-center gap-1">
+            <label for="filter-priority" class="text-xs font-medium text-gray-500">Priority:</label>
+            <select id="filter-priority" name="priority"
+                    hx-get="/lists/{{.List.ID}}/items" hx-target="#items-container" hx-swap="innerHTML"
+                    hx-include="closest div" class="text-sm border border-gray-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                <option value="">All</option>
+                <option value="0" {{if eq .Filter.Priority 0}}selected{{end}}>Critical</option>
+                <option value="1" {{if eq .Filter.Priority 1}}selected{{end}}>High</option>
+                <option value="2" {{if eq .Filter.Priority 2}}selected{{end}}>Medium</option>
+                <option value="3" {{if eq .Filter.Priority 3}}selected{{end}}>Low</option>
+            </select>
+        </div>
+
+        <!-- Sort -->
+        <div class="flex items-center gap-1">
+            <label for="sort-by" class="text-xs font-medium text-gray-500">Sort:</label>
+            <select id="sort-by" name="sort_by"
+                    hx-get="/lists/{{.List.ID}}/items" hx-target="#items-container" hx-swap="innerHTML"
+                    hx-include="closest div" class="text-sm border border-gray-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                <option value="created_at" {{if eq .Filter.SortBy "created_at"}}selected{{end}}>Created</option>
+                <option value="due_date" {{if eq .Filter.SortBy "due_date"}}selected{{end}}>Due Date</option>
+                <option value="priority" {{if eq .Filter.SortBy "priority"}}selected{{end}}>Priority</option>
+                <option value="sort_order" {{if eq .Filter.SortBy "sort_order"}}selected{{end}}>Order</option>
+            </select>
+        </div>
+
+        <!-- Sort direction -->
+        <div class="flex items-center gap-1">
+            <select id="sort-dir" name="sort_dir"
+                    hx-get="/lists/{{.List.ID}}/items" hx-target="#items-container" hx-swap="innerHTML"
+                    hx-include="closest div" class="text-sm border border-gray-300 rounded px-2 py-1 bg-white focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                <option value="asc" {{if eq .Filter.SortDir "asc"}}selected{{end}}>↑ Asc</option>
+                <option value="desc" {{if eq .Filter.SortDir "desc"}}selected{{end}}>↓ Desc</option>
+            </select>
+        </div>
+
+        <!-- Item count -->
+        <span class="ml-auto text-xs text-gray-400">{{len .Items}} items</span>
+    </div>
+
+    <!-- Items list -->
+    <div class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+        {{template "components/_item_card.html" .}}
+    </div>
+</div>

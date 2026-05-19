@@ -53,13 +53,30 @@ func (s *Server) RegisterRoutes() {
 	protected.HandleFunc("DELETE /lists/{id}", s.Handler.ListDelete)
 	protected.HandleFunc("POST /lists/{id}/collaborators", s.Handler.AddCollaborator)
 	protected.HandleFunc("DELETE /lists/{id}/collaborators/{userId}", s.Handler.RemoveCollaborator)
+
+	// Item CRUD routes (behind AuthMiddleware)
+	protected.HandleFunc("GET /lists/{id}/items", s.Handler.ListItems)
+	protected.HandleFunc("POST /lists/{id}/items", s.Handler.CreateItem)
+	protected.HandleFunc("PUT /items/{id}", s.Handler.UpdateItem)
+	protected.HandleFunc("DELETE /items/{id}", s.Handler.DeleteItem)
+	protected.HandleFunc("PUT /items/{id}/status", s.Handler.ToggleItemStatus)
+
+	// Settings pages
+	protected.HandleFunc("GET /settings", s.Handler.Settings)
+	protected.HandleFunc("GET /settings/api-keys", s.Handler.SettingsAPIKeys)
+	protected.HandleFunc("POST /settings/api-keys", s.Handler.CreateAPIKey)
+	protected.HandleFunc("DELETE /settings/api-keys/{id}", s.Handler.RevokeAPIKey)
+
 	s.Mux.Handle("/", AuthMiddleware(s.Auth, s.Logger)(protected))
 
-	// API routes (behind AuthMiddleware for JSON responses)
+	// API routes — accept both JWT cookie and API key auth
 	apiMux := http.NewServeMux()
 	apiMux.HandleFunc("GET /api/lists", s.Handler.ListsJSON)
 	apiMux.HandleFunc("POST /api/lists", s.Handler.CreateListJSON)
-	s.Mux.Handle("/api/", AuthMiddleware(s.Auth, s.Logger)(apiMux))
+	apiMux.HandleFunc("GET /api/lists/{id}", s.Handler.GetListJSON)
+	apiMux.HandleFunc("POST /api/lists/{id}/items", s.Handler.CreateItemJSON)
+	apiMux.HandleFunc("PUT /api/items/{id}", s.Handler.UpdateItemJSON)
+	s.Mux.Handle("/api/", EitherAuthMiddleware(s.Auth, s.DB, s.Logger)(apiMux))
 }
 
 // LoggingMiddleware logs each request with method, path, duration, and status.
