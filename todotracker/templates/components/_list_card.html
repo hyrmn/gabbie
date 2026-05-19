@@ -1,0 +1,24 @@
+{{define "components/_list_card.html"}}
+<div class="bg-white rounded-lg shadow border border-gray-200 p-5 hover:shadow-md transition-shadow group">
+    <div class="flex items-start justify-between mb-3">
+        <a href="/lists/{{.ID}}" class="text-lg font-semibold text-gray-900 hover:text-green-600 transition truncate">
+            {{.Name}}
+        </a>
+        {{if .IsOwner}}
+        <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium flex-shrink-0 ml-2">
+            Owner
+        </span>
+        {{end}}
+    </div>
+    {{if .Description}}
+    <p class="text-sm text-gray-600 mb-4 line-clamp-2">{{.Description}}</p>
+    {{else}}
+    <p class="text-sm text-gray-400 mb-4 italic">No description</p>
+    {{end}}
+    <div class="flex items-center justify-between mt-auto pt-3 border-t border-gray-100">
+        <a href="/lists/{{.ID}}" class="text-sm text-green-600 hover:text-green-700 font-medium transition">
+            Open List →
+        </a>
+    </div>
+</div>
+{{end}}

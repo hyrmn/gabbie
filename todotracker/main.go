@@ -18,7 +18,7 @@ import (
 	"github.com/hyrmn/todotracker/internal/templates"
 )
 
-//go:embed templates/*.html templates/components/* static/* migrations/*.sql
+//go:embed templates/*.html templates/components/* static/css/* static/js/* migrations/*.sql
 var assets embed.FS
 
 func main() {
@@ -78,10 +78,8 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// Static assets (embedded)
-	mux.Handle("GET /static/", http.StripPrefix("/static/",
-		http.FileServer(http.FS(assets)),
-	))
+	// Static assets (embedded) — no StripPrefix needed since embed paths match URL paths
+	mux.Handle("GET /static/", http.FileServer(http.FS(assets)))
 
 	// Routes
 	srv := server.New(mux, tmpl, logger, authSvc, database)

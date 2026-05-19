@@ -2,59 +2,158 @@
 
 {{define "title"}}To-Do Tracker — Dashboard{{end}}
 
+{{define "pageTitle"}}Dashboard{{end}}
+
 {{define "content"}}
-<div class="max-w-4xl mx-auto" x-data="{ auth: null }" x-init="fetch('/auth/session').then(r => r.json()).then(d => auth = d)">
-    <!-- Welcome header -->
+<div class="max-w-6xl mx-auto" x-data="{ auth: null }"
+     x-init="fetch('/auth/session').then(r => r.json()).then(d => auth = d)">
+
+    <!-- Welcome section -->
     <div class="mb-8">
-        <h2 class="text-2xl font-bold text-gray-900">
+        <h1 class="text-2xl font-bold text-gray-900">
             <template x-if="auth && auth.authenticated">
-                Welcome back, <span x-text="auth.user_email"></span>
+                Welcome back <span x-text="auth.user_email?.split('@')[0]" class="text-green-600"></span>
             </template>
             <template x-if="!auth || !auth.authenticated">
                 Welcome to To-Do Tracker
             </template>
-        </h2>
-        <p class="text-gray-600 mt-1">
-            A team-based to-do tracker built with Go, HTMX, AlpineJS, and Tailwind CSS.
+        </h1>
+        <p class="text-gray-500 mt-1">
+            Organize your work, collaborate with your team.
         </p>
     </div>
 
-    <!-- Auth prompt -->
+    <!-- Auth prompt for unauthenticated users -->
     <template x-if="!auth || !auth.authenticated">
-        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+        <div class="mb-6 p-5 bg-blue-50 border border-blue-200 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-                <p class="text-blue-800 font-medium">Sign in to access your lists</p>
+                <p class="text-blue-900 font-medium">Sign in to access your lists</p>
                 <p class="text-blue-700 text-sm mt-1">Create, share, and manage to-do lists with your team.</p>
             </div>
-            <a href="/login" class="ml-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
+            <a href="/login" class="shrink-0 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition shadow-sm">
                 Sign In
             </a>
         </div>
     </template>
 
-    <!-- Feature list -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div class="bg-white rounded-lg shadow p-6 border border-gray-200">
-            <div class="text-green-500 text-2xl mb-2">📋</div>
-            <h3 class="font-semibold text-gray-900">Shared Lists</h3>
-            <p class="text-sm text-gray-600 mt-1">Create lists and share them with your team.</p>
+    <!-- Quick stats (authenticated) -->
+    <template x-if="auth && auth.authenticated">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">My Lists</p>
+                        <p class="text-2xl font-bold text-gray-900" x-text="loading ? '...' : lists.length"></p>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">To-Do</p>
+                        <p class="text-2xl font-bold text-gray-900">—</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-yellow-50 flex items-center justify-center text-yellow-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">In Progress</p>
+                        <p class="text-2xl font-bold text-gray-900">—</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">Done</p>
+                        <p class="text-2xl font-bold text-gray-900">—</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="bg-white rounded-lg shadow p-6 border border-gray-200">
-            <div class="text-green-500 text-2xl mb-2">📊</div>
-            <h3 class="font-semibold text-gray-900">Kanban Board</h3>
-            <p class="text-sm text-gray-600 mt-1">Drag and drop items between status columns.</p>
+    </template>
+
+    <!-- Feature cards (unauthenticated) -->
+    <template x-if="!auth || !auth.authenticated">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center mb-3">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857A3 3 0 0017 20z"/>
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-gray-900">Shared Lists</h3>
+                <p class="text-sm text-gray-600 mt-1">Create lists and invite collaborators. Manage access with roles.</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center mb-3">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/>
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-gray-900">Kanban Board</h3>
+                <p class="text-sm text-gray-600 mt-1">Visualize your workflow. Drag and drop items between status columns.</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center mb-3">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-gray-900">API Access</h3>
+                <p class="text-sm text-gray-600 mt-1">Generate API keys for programmatic access. Full REST API.</p>
+            </div>
         </div>
-        <div class="bg-white rounded-lg shadow p-6 border border-gray-200">
-            <div class="text-green-500 text-2xl mb-2">🔑</div>
-            <h3 class="font-semibold text-gray-900">API Access</h3>
-            <p class="text-sm text-gray-600 mt-1">Generate API keys for programmatic access.</p>
+    </template>
+
+    <!-- Quick actions (authenticated) -->
+    <template x-if="auth && auth.authenticated">
+        <div class="mb-8">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+            <div class="flex flex-wrap gap-3">
+                <button
+                    x-data
+                    @click="$dispatch('open-new-list-modal')"
+                    class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition text-sm shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    New List
+                </button>
+            </div>
         </div>
-    </div>
+    </template>
 
     <!-- Status indicator -->
-    <div class="mt-8 p-4 bg-green-50 border border-green-200 rounded-lg">
-        <p class="text-green-800 font-medium">✅ System is running</p>
-        <p class="text-green-700 text-sm mt-1">Go + HTMX + AlpineJS + Tailwind + SQLite + Supabase Auth scaffolding loaded.</p>
+    <div class="mt-8 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
+        <svg class="w-5 h-5 text-green-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+        </svg>
+        <div>
+            <p class="text-green-800 font-medium text-sm">System is running</p>
+            <p class="text-green-700 text-xs mt-0.5">Go + HTMX + AlpineJS + Tailwind + SQLite + Supabase Auth</p>
+        </div>
     </div>
 </div>
 {{end}}

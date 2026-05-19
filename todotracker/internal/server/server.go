@@ -47,7 +47,19 @@ func (s *Server) RegisterRoutes() {
 	protected := http.NewServeMux()
 	protected.HandleFunc("GET /", s.Handler.Index)
 	protected.HandleFunc("GET /dashboard", s.Handler.Dashboard)
+	protected.HandleFunc("POST /lists", s.Handler.ListCreate)
+	protected.HandleFunc("GET /lists/{id}", s.Handler.ListView)
+	protected.HandleFunc("PUT /lists/{id}", s.Handler.ListUpdate)
+	protected.HandleFunc("DELETE /lists/{id}", s.Handler.ListDelete)
+	protected.HandleFunc("POST /lists/{id}/collaborators", s.Handler.AddCollaborator)
+	protected.HandleFunc("DELETE /lists/{id}/collaborators/{userId}", s.Handler.RemoveCollaborator)
 	s.Mux.Handle("/", AuthMiddleware(s.Auth, s.Logger)(protected))
+
+	// API routes (behind AuthMiddleware for JSON responses)
+	apiMux := http.NewServeMux()
+	apiMux.HandleFunc("GET /api/lists", s.Handler.ListsJSON)
+	apiMux.HandleFunc("POST /api/lists", s.Handler.CreateListJSON)
+	s.Mux.Handle("/api/", AuthMiddleware(s.Auth, s.Logger)(apiMux))
 }
 
 // LoggingMiddleware logs each request with method, path, duration, and status.
