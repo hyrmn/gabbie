@@ -1,0 +1,86 @@
+// Package server provides the HTTP server, router, and middleware.
+package server
+
+import (
+	"log/slog"
+	"net/http"
+	"time"
+
+	"github.com/hyrmn/todotracker/internal/auth"
+	"github.com/hyrmn/todotracker/internal/handlers"
+	"github.com/hyrmn/todotracker/internal/templates"
+)
+
+// Server holds the HTTP mux, templates, logger, and auth service.
+type Server struct {
+	Mux     *http.ServeMux
+	Tmpl    *templates.Engine
+	Logger  *slog.Logger
+	Handler *handlers.Handler
+	Auth    *auth.Service
+}
+
+// New creates a new Server instance.
+func New(mux *http.ServeMux, tmpl *templates.Engine, logger *slog.Logger, authService *auth.Service) *Server {
+	return &Server{
+		Mux:    mux,
+		Tmpl:   tmpl,
+		Logger: logger,
+		Handler: handlers.New(tmpl, logger),
+		Auth:   authService,
+	}
+}
+
+// RegisterRoutes sets up all HTTP routes.
+func (s *Server) RegisterRoutes() {
+	// Public routes
+	authHandlers := s.Auth.NewHandlers(s.Tmpl.Render)
+	s.Mux.HandleFunc("GET /login", authHandlers.Login)
+	s.Mux.HandleFunc("POST /auth/callback", authHandlers.Callback)
+	s.Mux.HandleFunc("POST /auth/logout", authHandlers.Logout)
+	s.Mux.HandleFunc("GET /auth/session", authHandlers.Session)
+
+	// Authenticated pages (wrapped in AuthMiddleware)
+	protected := http.NewServeMux()
+	protected.HandleFunc("GET /", s.Handler.Index)
+	protected.HandleFunc("GET /dashboard", s.Handler.Dashboard)
+	s.Mux.Handle("/", AuthMiddleware(s.Auth, s.Logger)(protected))
+}
+
+// LoggingMiddleware logs each request with method, path, duration, and status.
+func LoggingMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		lw := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+		next.ServeHTTP(lw, r)
+		logger.Info("request",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", lw.statusCode,
+			"duration", time.Since(start).String(),
+		)
+	})
+}
+
+// RecoveryMiddleware recovers from panics and returns 500.
+func RecoveryMiddleware(next http.Handler, logger *slog.Logger) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				logger.Error("panic recovered", "error", err)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (lrw *loggingResponseWriter) WriteHeader(code int) {
+	lrw.statusCode = code
+	lrw.ResponseWriter.WriteHeader(code)
+}

@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+/* Custom theme colors */
+@theme {
+  --color-primary: #50f872;
+  --color-primary-dark: #4fe88f;
+  --color-accent: #7cf8f7;
+  --color-surface: #1a1c2a;
+}
+
+/* Smooth transitions for HTMX swaps */
+.htmx-swapping {
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+
+/* Alpine.js x-cloak */
+[x-cloak] { display: none !important; }

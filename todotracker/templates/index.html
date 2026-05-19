@@ -1,0 +1,60 @@
+{{template "base.html" .}}
+
+{{define "title"}}To-Do Tracker — Dashboard{{end}}
+
+{{define "content"}}
+<div class="max-w-4xl mx-auto" x-data="{ auth: null }" x-init="fetch('/auth/session').then(r => r.json()).then(d => auth = d)">
+    <!-- Welcome header -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900">
+            <template x-if="auth && auth.authenticated">
+                Welcome back, <span x-text="auth.user_email"></span>
+            </template>
+            <template x-if="!auth || !auth.authenticated">
+                Welcome to To-Do Tracker
+            </template>
+        </h2>
+        <p class="text-gray-600 mt-1">
+            A team-based to-do tracker built with Go, HTMX, AlpineJS, and Tailwind CSS.
+        </p>
+    </div>
+
+    <!-- Auth prompt -->
+    <template x-if="!auth || !auth.authenticated">
+        <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+            <div>
+                <p class="text-blue-800 font-medium">Sign in to access your lists</p>
+                <p class="text-blue-700 text-sm mt-1">Create, share, and manage to-do lists with your team.</p>
+            </div>
+            <a href="/login" class="ml-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
+                Sign In
+            </a>
+        </div>
+    </template>
+
+    <!-- Feature list -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="bg-white rounded-lg shadow p-6 border border-gray-200">
+            <div class="text-green-500 text-2xl mb-2">📋</div>
+            <h3 class="font-semibold text-gray-900">Shared Lists</h3>
+            <p class="text-sm text-gray-600 mt-1">Create lists and share them with your team.</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border border-gray-200">
+            <div class="text-green-500 text-2xl mb-2">📊</div>
+            <h3 class="font-semibold text-gray-900">Kanban Board</h3>
+            <p class="text-sm text-gray-600 mt-1">Drag and drop items between status columns.</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border border-gray-200">
+            <div class="text-green-500 text-2xl mb-2">🔑</div>
+            <h3 class="font-semibold text-gray-900">API Access</h3>
+            <p class="text-sm text-gray-600 mt-1">Generate API keys for programmatic access.</p>
+        </div>
+    </div>
+
+    <!-- Status indicator -->
+    <div class="mt-8 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <p class="text-green-800 font-medium">✅ System is running</p>
+        <p class="text-green-700 text-sm mt-1">Go + HTMX + AlpineJS + Tailwind + SQLite + Supabase Auth scaffolding loaded.</p>
+    </div>
+</div>
+{{end}}
