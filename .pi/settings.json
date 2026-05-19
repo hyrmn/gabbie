@@ -1,0 +1,14 @@
+{
+  "subagents": {
+    "agentOverrides": {
+      "scout":          { "model": "opencode-go/qwen3.6-plus" },
+      "context-builder": { "model": "opencode-go/qwen3.6-plus" },
+      "planner":        { "model": "opencode-go/qwen3.6-plus" },
+      "worker":         { "model": "opencode-go/qwen3.6-plus" },
+      "reviewer":       { "model": "opencode-go/qwen3.6-plus" },
+      "researcher":     { "model": "opencode-go/qwen3.6-plus" },
+      "oracle":         { "model": "opencode-go/qwen3.6-plus" },
+      "delegate":       { "model": "opencode-go/qwen3.6-plus" }
+    }
+  }
+}
