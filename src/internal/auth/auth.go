@@ -25,8 +25,10 @@ const (
 	UserKey contextKey = "user"
 	// SessionCookieName is the name of the HTTP-only session cookie.
 	SessionCookieName = "sb-access-token"
-	// SessionDuration is how long a session lasts (7 days).
+	// SessionDuration is how long a remembered session lasts (7 days).
 	SessionDuration = 7 * 24 * time.Hour
+	// ShortSessionDuration is how long a non-remembered session lasts (1 hour).
+	ShortSessionDuration = 1 * time.Hour
 )
 
 // User represents an authenticated user.
@@ -201,12 +203,14 @@ func (s *Service) SyncUser(ctx context.Context, user *User) error {
 }
 
 // SetSessionCookie sets the HTTP-only session cookie on the response.
-func SetSessionCookie(w http.ResponseWriter, token string) {
+// The duration controls the MaxAge; use ShortSessionDuration for
+// "remember me = false" and SessionDuration for "remember me = true".
+func SetSessionCookie(w http.ResponseWriter, token string, duration time.Duration) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     SessionCookieName,
 		Value:    token,
 		Path:     "/",
-		MaxAge:   int(SessionDuration.Seconds()),
+		MaxAge:   int(duration.Seconds()),
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
@@ -290,6 +294,7 @@ func (h *Handlers) Callback(w http.ResponseWriter, r *http.Request) {
 
 	var req struct {
 		AccessToken string `json:"access_token"`
+		RememberMe  bool   `json:"remember_me"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -313,7 +318,11 @@ func (h *Handlers) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SetSessionCookie(w, req.AccessToken)
+	duration := ShortSessionDuration
+	if req.RememberMe {
+		duration = SessionDuration
+	}
+	SetSessionCookie(w, req.AccessToken, duration)
 
 	// For HTMX redirects
 	w.Header().Set("HX-Redirect", "/dashboard")
@@ -396,7 +405,7 @@ func (h *AuthHandlers) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	SetSessionCookie(w, token)
+	SetSessionCookie(w, token, SessionDuration)
 	http.Redirect(w, r, "/dashboard", http.StatusFound)
 }
 

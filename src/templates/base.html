@@ -12,15 +12,8 @@
     {{block "head" .}}{{end}}
 </head>
 <body class="h-full bg-gray-50 text-gray-900" hx-boost="true">
-    <div class="flex h-full" x-data="{ sidebarOpen: false, user: null, lists: [], loading: true }"
-         x-init="
-            fetch('/auth/session').then(r => r.ok ? r.json() : null).then(d => {
-                user = d;
-                if (d && d.authenticated) {
-                    fetch('/api/lists').then(r => r.ok ? r.json() : []).then(data => { lists = data || []; loading = false; }).catch(() => { loading = false; });
-                } else { loading = false; }
-            });
-         ">
+    <div class="flex h-full" x-data="{ sidebarOpen: false, lists: [], loading: {{if .User}}true{{else}}false{{end}} }"
+         {{if .User}}x-init="fetch('/api/lists').then(r => r.ok ? r.json() : []).then(data => { lists = data || []; loading = false; }).catch(() => { loading = false; })"{{end}}>
         <!-- Desktop Sidebar -->
         <aside class="w-64 bg-gray-900 text-white flex-shrink-0 hidden md:flex flex-col">
             <div class="p-4 border-b border-gray-700">
@@ -43,20 +36,20 @@
 
             <!-- Sidebar footer -->
             <div class="p-3 border-t border-gray-700">
-                <template x-if="user && user.authenticated">
-                    <div class="flex items-center gap-2 px-2 py-1">
-                        <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold shrink-0"
-                             x-text="(user.user_email || '?')[0].toUpperCase()"></div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm text-gray-200 truncate" x-text="user.user_email || 'User'"></p>
-                        </div>
+                {{if .User}}
+                <div class="flex items-center gap-2 px-2 py-1">
+                    <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        {{slice .User.Email 0 1}}
                     </div>
-                </template>
-                <template x-if="!user || !user.authenticated">
-                    <a href="/login" class="block text-sm text-green-400 hover:text-green-300 transition px-2 py-1">
-                        Sign In
-                    </a>
-                </template>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm text-gray-200 truncate">{{.User.Email}}</p>
+                    </div>
+                </div>
+                {{else}}
+                <a href="/login" class="block text-sm text-green-400 hover:text-green-300 transition px-2 py-1">
+                    Sign In
+                </a>
+                {{end}}
             </div>
         </aside>
 
@@ -99,20 +92,20 @@
                 {{template "_sidebar.html" .}}
             </nav>
             <div class="p-3 border-t border-gray-700">
-                <template x-if="user && user.authenticated">
-                    <div class="flex items-center gap-2 px-2 py-1">
-                        <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold shrink-0"
-                             x-text="(user.user_email || '?')[0].toUpperCase()"></div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm text-gray-200 truncate" x-text="user.user_email || 'User'"></p>
-                        </div>
+                {{if .User}}
+                <div class="flex items-center gap-2 px-2 py-1">
+                    <div class="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        {{slice .User.Email 0 1}}
                     </div>
-                </template>
-                <template x-if="!user || !user.authenticated">
-                    <a href="/login" class="block text-sm text-green-400 hover:text-green-300 transition px-2 py-1">
-                        Sign In
-                    </a>
-                </template>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm text-gray-200 truncate">{{.User.Email}}</p>
+                    </div>
+                </div>
+                {{else}}
+                <a href="/login" class="block text-sm text-green-400 hover:text-green-300 transition px-2 py-1">
+                    Sign In
+                </a>
+                {{end}}
             </div>
         </div>
 

@@ -48,6 +48,7 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 		"Title":  "Dashboard",
 		"Lists":  listDetails,
 		"UserID": user.ID,
+		"User":   user,
 	})
 }
 
@@ -151,6 +152,7 @@ func (h *Handler) ListView(w http.ResponseWriter, r *http.Request) {
 		"Filter":        db.ItemFilter{},
 		"IsOwner":       list.OwnerID == user.ID,
 		"UserID":        user.ID,
+		"User":          user,
 	})
 }
 

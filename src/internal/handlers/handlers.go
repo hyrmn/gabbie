@@ -29,10 +29,13 @@ func New(tmpl *templates.Engine, logger *slog.Logger, database *db.DB) *Handler 
 	}
 }
 
-// Index renders the landing page.
+// Index renders the public landing page. When the user is authenticated
+// it shows their dashboard content; otherwise it shows a marketing page.
 func (h *Handler) Index(w http.ResponseWriter, r *http.Request) {
+	user := auth.GetUser(r)
 	h.Tmpl.Render(w, http.StatusOK, "index.html", map[string]any{
 		"Title": "To-Do Tracker",
+		"User":  user,
 	})
 }
 

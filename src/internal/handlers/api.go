@@ -251,7 +251,7 @@ func (h *Handler) CreateAPIKey(w http.ResponseWriter, r *http.Request) {
 	h.Tmpl.Render(w, http.StatusOK, "settings_api_keys.html", map[string]any{
 		"Title": "API Keys — Settings",
 		"User":  user,
-		"Keys":  append([]models.APIKey{*apiKey}),
+		"Keys":  []models.APIKey{*apiKey},
 	})
 }
 

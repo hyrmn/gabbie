@@ -58,6 +58,7 @@ func (h *Handler) KanbanView(w http.ResponseWriter, r *http.Request) {
 		"Collaborators": collabs,
 		"IsOwner":       list.OwnerID == user.ID,
 		"UserID":        user.ID,
+		"User":          user,
 	})
 }
 

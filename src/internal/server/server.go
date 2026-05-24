@@ -37,60 +37,62 @@ func New(mux *http.ServeMux, tmpl *templates.Engine, logger *slog.Logger, authSe
 
 // RegisterRoutes sets up all HTTP routes.
 func (s *Server) RegisterRoutes() {
-	// Public routes
+	// Auth middleware wrappers
+	requireAuth := AuthMiddleware(s.Auth, s.Logger)
+	requireAuthRecovery := func(h http.Handler) http.Handler {
+		return RecoveryMiddleware(requireAuth(h), s.Logger)
+	}
+
+	// Public routes (no auth required)
 	authHandlers := s.Auth.NewHandlers(s.Tmpl.Render)
 	s.Mux.HandleFunc("GET /login", authHandlers.Login)
 	s.Mux.HandleFunc("POST /auth/callback", authHandlers.Callback)
 	s.Mux.HandleFunc("POST /auth/logout", authHandlers.Logout)
 	s.Mux.HandleFunc("GET /auth/session", authHandlers.Session)
 
-	// 404 handler for unmatched routes
-	s.Mux.HandleFunc("/", s.notFound)
+	// Root path: public landing page. Shows different content for
+	// authenticated vs unauthenticated users.
+	s.Mux.Handle("GET /", OptionalAuth(s.Auth)(RecoveryMiddleware(http.HandlerFunc(s.Handler.Index), s.Logger)))
 
-	// Authenticated pages (wrapped in AuthMiddleware)
-	protected := http.NewServeMux()
-	protected.HandleFunc("GET /", s.Handler.Index)
-	protected.HandleFunc("GET /dashboard", s.Handler.Dashboard)
-	protected.HandleFunc("POST /lists", s.Handler.ListCreate)
-	protected.HandleFunc("GET /lists/{id}", s.Handler.ListView)
-	protected.HandleFunc("PUT /lists/{id}", s.Handler.ListUpdate)
-	protected.HandleFunc("DELETE /lists/{id}", s.Handler.ListDelete)
-	protected.HandleFunc("POST /lists/{id}/collaborators", s.Handler.AddCollaborator)
-	protected.HandleFunc("DELETE /lists/{id}/collaborators/{userId}", s.Handler.RemoveCollaborator)
+	// Protected page routes (require JWT session)
+	s.Mux.Handle("GET /dashboard", requireAuthRecovery(http.HandlerFunc(s.Handler.Dashboard)))
+	s.Mux.Handle("POST /lists", requireAuthRecovery(http.HandlerFunc(s.Handler.ListCreate)))
+	s.Mux.Handle("GET /lists/{id}", requireAuthRecovery(http.HandlerFunc(s.Handler.ListView)))
+	s.Mux.Handle("PUT /lists/{id}", requireAuthRecovery(http.HandlerFunc(s.Handler.ListUpdate)))
+	s.Mux.Handle("DELETE /lists/{id}", requireAuthRecovery(http.HandlerFunc(s.Handler.ListDelete)))
+	s.Mux.Handle("POST /lists/{id}/collaborators", requireAuthRecovery(http.HandlerFunc(s.Handler.AddCollaborator)))
+	s.Mux.Handle("DELETE /lists/{id}/collaborators/{userId}", requireAuthRecovery(http.HandlerFunc(s.Handler.RemoveCollaborator)))
 
-	// Item CRUD routes (behind AuthMiddleware)
-	protected.HandleFunc("GET /lists/{id}/items", s.Handler.ListItems)
-	protected.HandleFunc("POST /lists/{id}/items", s.Handler.CreateItem)
-	protected.HandleFunc("PUT /items/{id}", s.Handler.UpdateItem)
-	protected.HandleFunc("DELETE /items/{id}", s.Handler.DeleteItem)
-	protected.HandleFunc("PUT /items/{id}/status", s.Handler.ToggleItemStatus)
+	// Item CRUD routes
+	s.Mux.Handle("GET /lists/{id}/items", requireAuthRecovery(http.HandlerFunc(s.Handler.ListItems)))
+	s.Mux.Handle("POST /lists/{id}/items", requireAuthRecovery(http.HandlerFunc(s.Handler.CreateItem)))
+	s.Mux.Handle("PUT /items/{id}", requireAuthRecovery(http.HandlerFunc(s.Handler.UpdateItem)))
+	s.Mux.Handle("DELETE /items/{id}", requireAuthRecovery(http.HandlerFunc(s.Handler.DeleteItem)))
+	s.Mux.Handle("PUT /items/{id}/status", requireAuthRecovery(http.HandlerFunc(s.Handler.ToggleItemStatus)))
 
 	// Kanban routes
-	protected.HandleFunc("GET /lists/{id}/kanban", s.Handler.KanbanView)
-	protected.HandleFunc("PUT /items/{id}/move", s.Handler.MoveItem)
+	s.Mux.Handle("GET /lists/{id}/kanban", requireAuthRecovery(http.HandlerFunc(s.Handler.KanbanView)))
+	s.Mux.Handle("PUT /items/{id}/move", requireAuthRecovery(http.HandlerFunc(s.Handler.MoveItem)))
 
 	// Settings pages
-	protected.HandleFunc("GET /settings", s.Handler.Settings)
-	protected.HandleFunc("GET /settings/api-keys", s.Handler.SettingsAPIKeys)
-	protected.HandleFunc("POST /settings/api-keys", s.Handler.CreateAPIKey)
-	protected.HandleFunc("DELETE /settings/api-keys/{id}", s.Handler.RevokeAPIKey)
-
-	// Mount protected routes — wrap with recovery and auth
-	wrapped := RecoveryMiddleware(protected, s.Logger)
-	s.Mux.Handle("/dashboard", AuthMiddleware(s.Auth, s.Logger)(wrapped))
-	s.Mux.Handle("/lists", AuthMiddleware(s.Auth, s.Logger)(wrapped))
-	s.Mux.Handle("/items", AuthMiddleware(s.Auth, s.Logger)(wrapped))
-	s.Mux.Handle("/settings", AuthMiddleware(s.Auth, s.Logger)(wrapped))
+	s.Mux.Handle("GET /settings", requireAuthRecovery(http.HandlerFunc(s.Handler.Settings)))
+	s.Mux.Handle("GET /settings/api-keys", requireAuthRecovery(http.HandlerFunc(s.Handler.SettingsAPIKeys)))
+	s.Mux.Handle("POST /settings/api-keys", requireAuthRecovery(http.HandlerFunc(s.Handler.CreateAPIKey)))
+	s.Mux.Handle("DELETE /settings/api-keys/{id}", requireAuthRecovery(http.HandlerFunc(s.Handler.RevokeAPIKey)))
 
 	// API routes — accept both JWT cookie and API key auth
-	apiMux := http.NewServeMux()
-	apiMux.HandleFunc("GET /api/lists", s.Handler.ListsJSON)
-	apiMux.HandleFunc("POST /api/lists", s.Handler.CreateListJSON)
-	apiMux.HandleFunc("GET /api/lists/{id}", s.Handler.GetListJSON)
-	apiMux.HandleFunc("POST /api/lists/{id}/items", s.Handler.CreateItemJSON)
-	apiMux.HandleFunc("PUT /api/items/{id}", s.Handler.UpdateItemJSON)
-	apiMux.HandleFunc("PUT /api/items/{id}/move", s.Handler.MoveItemAPI)
-	s.Mux.Handle("/api/", RecoveryMiddleware(EitherAuthMiddleware(s.Auth, s.DB, s.Logger)(apiMux), s.Logger))
+	apiAuth := EitherAuthMiddleware(s.Auth, s.DB, s.Logger)
+	s.Mux.Handle("GET /api/lists", RecoveryMiddleware(apiAuth(http.HandlerFunc(s.Handler.ListsJSON)), s.Logger))
+	s.Mux.Handle("POST /api/lists", RecoveryMiddleware(apiAuth(http.HandlerFunc(s.Handler.CreateListJSON)), s.Logger))
+	s.Mux.Handle("GET /api/lists/{id}", RecoveryMiddleware(apiAuth(http.HandlerFunc(s.Handler.GetListJSON)), s.Logger))
+	s.Mux.Handle("POST /api/lists/{id}/items", RecoveryMiddleware(apiAuth(http.HandlerFunc(s.Handler.CreateItemJSON)), s.Logger))
+	s.Mux.Handle("PUT /api/items/{id}", RecoveryMiddleware(apiAuth(http.HandlerFunc(s.Handler.UpdateItemJSON)), s.Logger))
+	s.Mux.Handle("PUT /api/items/{id}/move", RecoveryMiddleware(apiAuth(http.HandlerFunc(s.Handler.MoveItemAPI)), s.Logger))
+
+	// 404 fallback — must be registered last so it doesn't shadow other routes.
+	// In Go 1.22, HandleFunc("/", ...) matches GET / and POST / exactly,
+	// so explicit routes above take precedence. This only catches the root.
+	s.Mux.HandleFunc("/", s.notFound)
 }
 
 // LoggingMiddleware logs each request with method, path, duration, and status.
